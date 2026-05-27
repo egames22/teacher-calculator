@@ -1,0 +1,11 @@
+# PyInstaller 중간 산출물
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# 설정 파일 (사용자 로컬)
+settings.json
+
+# 임시 파일
+*.tmp
