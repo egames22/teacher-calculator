@@ -397,8 +397,11 @@ class Calculator(tk.Tk):
         self._op    = None
         self._just_evaluated = False
         self._buttons: dict[str, tk.Button] = {}
+        self._tray_icon = None
+        self._icon_photo = None
 
         self._build_ui()
+        self._apply_window_icon()
         self._bind_keys()
         self.apply_settings(self._settings)
         self.after(80, self._resize_fonts)
@@ -496,6 +499,46 @@ class Calculator(tk.Tk):
         except Exception:
             return c
 
+    # ── 아이콘 ───────────────────────────────────────────────────────────────
+
+    def _apply_window_icon(self):
+        try:
+            from PIL import Image, ImageTk
+            img = Image.open(_asset("교사용계산기 이미지.png"))
+            self._icon_photo = ImageTk.PhotoImage(img)
+            self.iconphoto(True, self._icon_photo)
+        except Exception:
+            pass
+
+    # ── 트레이 ───────────────────────────────────────────────────────────────
+
+    def _hide_to_tray(self):
+        self.withdraw()
+        if self._tray_icon is not None:
+            return
+        try:
+            import pystray
+            from PIL import Image
+            img = Image.open(_asset("교사용계산기 이미지.png")).convert("RGBA")
+            menu = pystray.Menu(
+                pystray.MenuItem("열기", lambda icon, item: self._restore_from_tray(icon), default=True),
+                pystray.MenuItem("종료", lambda icon, item: self._quit_from_tray(icon)),
+            )
+            self._tray_icon = pystray.Icon("교사용계산기", img, "교사용계산기", menu)
+            threading.Thread(target=self._tray_icon.run, daemon=True).start()
+        except Exception:
+            pass
+
+    def _restore_from_tray(self, icon):
+        icon.stop()
+        self._tray_icon = None
+        self.after(0, self.deiconify)
+
+    def _quit_from_tray(self, icon):
+        icon.stop()
+        self._tray_icon = None
+        self.after(0, self.destroy)
+
     # ── 설정 ─────────────────────────────────────────────────────────────────
 
     def apply_settings(self, s: dict):
@@ -507,7 +550,7 @@ class Calculator(tk.Tk):
         else:
             self._kor_frame.grid_remove()
         if s["close_to_tray"]:
-            self.protocol("WM_DELETE_WINDOW", self.withdraw)
+            self.protocol("WM_DELETE_WINDOW", self._hide_to_tray)
         else:
             self.protocol("WM_DELETE_WINDOW", self.destroy)
         apply_startup(s["start_with_windows"])

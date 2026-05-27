@@ -7,14 +7,16 @@ cd /d "%~dp0"
 pyinstaller --onefile ^
   --windowed ^
   --name "교사용계산기" ^
-  --icon NONE ^
+  --icon "교사용계산기.ico" ^
   --hidden-import keyboard ^
   --hidden-import pynput ^
+  --hidden-import pystray ^
   --hidden-import PIL ^
   --hidden-import PIL.Image ^
   --hidden-import PIL.ImageTk ^
   --add-data "논산여상 로고.png;." ^
   --add-data "갓쌤에듀 로고.png;." ^
+  --add-data "교사용계산기 이미지.png;." ^
   main.py
 
 echo.
