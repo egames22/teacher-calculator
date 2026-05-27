@@ -282,27 +282,27 @@ class SettingsDialog(tk.Toplevel):
                  font=("맑은 고딕", 9)).pack(anchor="w", padx=8, pady=4)
         return f
 
-    def _row(self, label: str, widget: tk.Widget):
+    def _row(self, label: str, make_widget):
         f = tk.Frame(self, bg="#1e1e1e")
         f.pack(fill="x", padx=16, pady=5)
         tk.Label(f, text=label, bg="#1e1e1e", fg="#cccccc",
                  font=("맑은 고딕", 10), width=22, anchor="w").pack(side="left")
-        widget.pack(side="left")
+        make_widget(f).pack(side="left")
 
     def _build(self):
         # ── 동작
         self._section("동작")
         self._row("X 버튼: 백그라운드 대기",
-                  DarkCheckbox(self, self._close_tray, bg="#1e1e1e"))
+                  lambda p: DarkCheckbox(p, self._close_tray, bg="#1e1e1e"))
         self._row("항상 위에 표시",
-                  DarkCheckbox(self, self._on_top, bg="#1e1e1e"))
+                  lambda p: DarkCheckbox(p, self._on_top, bg="#1e1e1e"))
         self._row("Windows 시작 시 자동 실행",
-                  DarkCheckbox(self, self._startup, bg="#1e1e1e"))
+                  lambda p: DarkCheckbox(p, self._startup, bg="#1e1e1e"))
 
         # ── 표시
         self._section("표시")
         self._row("한글 금액 변환 표시",
-                  DarkCheckbox(self, self._show_kor, bg="#1e1e1e"))
+                  lambda p: DarkCheckbox(p, self._show_kor, bg="#1e1e1e"))
 
         # 투명도 슬라이더
         f_op = tk.Frame(self, bg="#1e1e1e")
