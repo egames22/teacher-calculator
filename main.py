@@ -361,21 +361,24 @@ class SettingsDialog(tk.Toplevel):
 # ─── 계산기 레이아웃 ──────────────────────────────────────────────────────────
 
 BUTTON_LAYOUT = [
-    ["C",  "±",  "%",  "÷"],
-    ["7",  "8",  "9",  "×"],
-    ["4",  "5",  "6",  "−"],
-    ["1",  "2",  "3",  "+"],
-    ["0",  "",   ".",  "="],
+    ["C",  "±",  "%",   "÷"],
+    ["7",  "8",  "9",   "×"],
+    ["4",  "5",  "6",   "−"],
+    ["1",  "2",  "3",   "+"],
+    ["0",  "",   ".",   "="],
+    ["한글", "",  "",   "천원"],
 ]
 BTN_COLORS = {
-    "C":  ("#e74c3c", "#fff"),
-    "±":  ("#555555", "#fff"),
-    "%":  ("#555555", "#fff"),
-    "÷":  ("#e67e22", "#fff"),
-    "×":  ("#e67e22", "#fff"),
-    "−":  ("#e67e22", "#fff"),
-    "+":  ("#e67e22", "#fff"),
-    "=":  ("#e67e22", "#fff"),
+    "C":   ("#e74c3c", "#fff"),
+    "±":   ("#555555", "#fff"),
+    "%":   ("#555555", "#fff"),
+    "÷":   ("#e67e22", "#fff"),
+    "×":   ("#e67e22", "#fff"),
+    "−":   ("#e67e22", "#fff"),
+    "+":   ("#e67e22", "#fff"),
+    "=":   ("#e67e22", "#fff"),
+    "한글": ("#1a6b3a", "#fff"),
+    "천원": ("#1a4a7a", "#fff"),
 }
 DEFAULT_CLR = ("#2d2d2d", "#ffffff")
 
@@ -412,7 +415,7 @@ class Calculator(tk.Tk):
     def _build_ui(self):
         self.grid_rowconfigure(0, weight=3)
         self.grid_rowconfigure(1, weight=2)
-        for r in range(2, 7):
+        for r in range(2, 8):
             self.grid_rowconfigure(r, weight=3)
         for c in range(4):
             self.grid_columnconfigure(c, weight=1)
@@ -475,7 +478,7 @@ class Calculator(tk.Tk):
             for c, label in enumerate(row):
                 if label == "":
                     continue
-                colspan = 2 if label == "0" else 1
+                colspan = 3 if label == "한글" else (2 if label == "0" else 1)
                 bg, fg = BTN_COLORS.get(label, DEFAULT_CLR)
                 btn = tk.Button(
                     self, text=label,
@@ -602,6 +605,8 @@ class Calculator(tk.Tk):
         elif label == "±":                   self._negate()
         elif label == "%":                   self._percent()
         elif label == ".":                   self._dot()
+        elif label == "한글":               self._convert_korean()
+        elif label == "천원":               self._convert_cheon()
         else:                                self._digit(label)
 
     def _clear_all(self):
@@ -688,6 +693,28 @@ class Calculator(tk.Tk):
         except Exception:
             self._kor_var.set("")
             self._cheon_var.set("")
+
+    def _convert_korean(self):
+        try:
+            val = self._parse(self._entry)
+            kor   = to_korean_amount(int(round(val)))
+            cheon = to_cheonwon(val)
+            self._kor_var.set(f"{kor}  ← 클릭하여 복사")
+            self._cheon_var.set(f"{cheon}  ← 클릭하여 복사")
+            self._copy(kor)
+        except Exception:
+            pass
+
+    def _convert_cheon(self):
+        try:
+            val = self._parse(self._entry)
+            kor   = to_korean_amount(int(round(val)))
+            cheon = to_cheonwon(val)
+            self._kor_var.set(f"{kor}  ← 클릭하여 복사")
+            self._cheon_var.set(f"{cheon}  ← 클릭하여 복사")
+            self._copy(cheon)
+        except Exception:
+            pass
 
     def _copy(self, text: str):
         text = text.replace("  ← 클릭하여 복사", "").strip()
