@@ -505,6 +505,88 @@
 
   footer strong { color: var(--text); }
 
+  /* ── 만든이 팝업 ── */
+  .maker-btn {
+    font-size: 13px;
+    color: var(--text-sub);
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .maker-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 36px 32px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    position: relative;
+    animation: modalIn 0.18s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 18px;
+    background: none; border: none;
+    font-size: 20px; color: var(--text-sub);
+    cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-box .maker-icon {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-box h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .modal-box .maker-school {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 20px;
+  }
+
+  .modal-box .maker-tag {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
   /* ── 반응형 ── */
   @media (max-width: 600px) {
     .github-card { flex-direction: column; }
@@ -512,6 +594,17 @@
     section { padding: 48px 16px; }
   }
 </style>
+
+<!-- 만든이 팝업 -->
+<div class="modal-overlay" id="makerModal" onclick="closeMakerModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('makerModal').classList.remove('open')">✕</button>
+    <div class="maker-icon">👨‍🏫</div>
+    <h3>장동욱</h3>
+    <p class="maker-school">논산여자상업고등학교</p>
+    <span class="maker-tag">Made with Claude Code</span>
+  </div>
+</div>
 </head>
 <body>
 
@@ -528,12 +621,12 @@
     <li><a href="#usage">활용사례</a></li>
     <li><a href="#features">소개</a></li>
     <li><a href="#qna">QnA</a></li>
+    <li><button class="maker-btn" onclick="document.getElementById('makerModal').classList.add('open')">만든이</button></li>
   </ul>
 </nav>
 
 <!-- 히어로 -->
 <div class="hero">
-  <div class="hero-badge">🏫 논산여자상업고등학교 · 장동욱 교사</div>
   <h1>공문서 한글 금액 변환<br><span>교사용 계산기</span></h1>
   <p class="hero-sub">
     숫자를 입력하면 즉시 <strong>공문서 한글 금액</strong>과 <strong>천원 단위</strong>로 변환해 드립니다.
@@ -639,7 +732,7 @@
       </div>
       <div class="prompt-result">
         <span class="tag">구현 결과</span>
-        설정 다이얼로그, 커스텀 다크 체크박스, 만든이 팝업 (논산여상 + 갓쌤에듀 로고)
+        설정 다이얼로그, 커스텀 다크 체크박스
       </div>
     </div>
     <div class="prompt-item">
@@ -821,11 +914,16 @@
 
 <!-- 푸터 -->
 <footer>
-  <p><strong>교사용 계산기</strong> · 장동욱 · 논산여자상업고등학교</p>
+  <p><strong>교사용 계산기</strong> · <button class="maker-btn" onclick="document.getElementById('makerModal').classList.add('open')" style="font-size:12px;padding:3px 10px;">만든이</button></p>
   <p style="margin-top:6px">Made with <strong>Claude Code</strong> (Anthropic) · 2026</p>
 </footer>
 
 <script>
+  function closeMakerModal(e) {
+    if (e.target === document.getElementById('makerModal'))
+      document.getElementById('makerModal').classList.remove('open');
+  }
+
   function toggleQna(btn) {
     const answer = btn.nextElementSibling;
     const isOpen = answer.classList.contains('open');
