@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교사용 계산기 — 장동욱 with Claude Code</title>
+<style>
+  :root {
+    --primary: #1a6b3a;
+    --primary-light: #e8f5ee;
+    --accent: #e67e22;
+    --text: #1a1a1a;
+    --text-sub: #555;
+    --border: #e0e0e0;
+    --bg: #ffffff;
+    --bg-soft: #f8f9fa;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.7;
+  }
+
+  /* ── 네비게이션 ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  .nav-logo {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-logo img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 13px;
+    color: var(--text-sub);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+
+  .nav-links a:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* ── 히어로 ── */
+  .hero {
+    background: linear-gradient(135deg, #f0faf4 0%, #fff8f0 100%);
+    padding: 72px 24px 64px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .hero h1 span { color: var(--primary); }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-sub);
+    max-width: 520px;
+    margin: 0 auto 36px;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.15s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #155730; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,107,58,0.3); }
+
+  .btn-secondary {
+    background: #fff;
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-accent:hover { background: #d35400; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(230,126,34,0.3); }
+
+  /* ── 섹션 공통 ── */
+  section {
+    padding: 72px 24px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  section + section { border-top: 1px solid var(--border); }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-size: clamp(22px, 3vw, 30px);
+    font-weight: 800;
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  .section-desc {
+    color: var(--text-sub);
+    font-size: 15px;
+    margin-bottom: 36px;
+    max-width: 640px;
+  }
+
+  /* ── 섹션 1: GitHub 링크 ── */
+  .github-card {
+    background: #0d1117;
+    border-radius: var(--radius);
+    padding: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .github-card-info h3 {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .github-card-info p {
+    color: #8b949e;
+    font-size: 14px;
+  }
+
+  .github-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .github-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #8b949e;
+    font-size: 13px;
+  }
+
+  /* ── 섹션 2: 제작동기 ── */
+  .motivation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .motivation-card {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .motivation-card .icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+
+  .motivation-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .motivation-card p {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.6;
+  }
+
+  /* ── 섹션 3: 핵심 프롬프트 ── */
+  .prompt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .prompt-item {
+    border-left: 3px solid var(--primary);
+    padding-left: 20px;
+  }
+
+  .prompt-item .prompt-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .prompt-bubble {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 0 var(--radius) var(--radius) var(--radius);
+    padding: 16px 20px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .prompt-bubble::before {
+    content: '"';
+    position: absolute;
+    top: -2px;
+    left: -1px;
+    font-size: 36px;
+    color: var(--primary);
+    opacity: 0.25;
+    line-height: 1;
+  }
+
+  .prompt-result {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-sub);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── 섹션 4: 활용 방법 ── */
+  .use-cases {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .use-case {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+
+  .use-case-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .use-case h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .use-case p {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.6;
+  }
+
+  .use-case .example {
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ── 섹션 5: 프로그램 소개 ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .feature-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: all 0.15s;
+  }
+
+  .feature-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+  }
+
+  .feature-card .icon {
+    font-size: 26px;
+    margin-bottom: 12px;
+  }
+
+  .feature-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .feature-card p {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.6;
+  }
+
+  /* ── 섹션 6: QnA ── */
+  .qna-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .qna-item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .qna-item:last-child { border-bottom: none; }
+
+  .qna-question {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 20px 24px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    transition: background 0.1s;
+  }
+
+  .qna-question:hover { background: var(--bg-soft); }
+
+  .qna-question.open { color: var(--primary); }
+
+  .qna-arrow {
+    font-size: 18px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    color: var(--text-sub);
+  }
+
+  .qna-question.open .qna-arrow { transform: rotate(180deg); color: var(--primary); }
+
+  .qna-answer {
+    display: none;
+    padding: 0 24px 20px;
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.8;
+    background: var(--bg-soft);
+  }
+
+  .qna-answer.open { display: block; }
+
+  /* ── 다운로드 배너 ── */
+  .download-banner {
+    background: linear-gradient(135deg, var(--primary) 0%, #155730 100%);
+    padding: 56px 24px;
+    text-align: center;
+  }
+
+  .download-banner h2 {
+    color: #fff;
+    font-size: clamp(20px, 3vw, 28px);
+    margin-bottom: 12px;
+  }
+
+  .download-banner p {
+    color: rgba(255,255,255,0.8);
+    font-size: 15px;
+    margin-bottom: 28px;
+  }
+
+  /* ── 푸터 ── */
+  footer {
+    background: var(--bg-soft);
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  footer strong { color: var(--text); }
+
+  /* ── 반응형 ── */
+  @media (max-width: 600px) {
+    .github-card { flex-direction: column; }
+    .nav-links { display: none; }
+    section { padding: 48px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 네비게이션 -->
+<nav>
+  <div class="nav-logo">
+    <img src="교사용계산기 이미지.png" alt="아이콘" onerror="this.style.display='none'">
+    교사용 계산기
+  </div>
+  <ul class="nav-links">
+    <li><a href="#github">GitHub</a></li>
+    <li><a href="#motivation">제작동기</a></li>
+    <li><a href="#howto">제작방법</a></li>
+    <li><a href="#usage">활용사례</a></li>
+    <li><a href="#features">소개</a></li>
+    <li><a href="#qna">QnA</a></li>
+  </ul>
+</nav>
+
+<!-- 히어로 -->
+<div class="hero">
+  <div class="hero-badge">🏫 논산여자상업고등학교 · 장동욱 교사</div>
+  <h1>공문서 한글 금액 변환<br><span>교사용 계산기</span></h1>
+  <p class="hero-sub">
+    숫자를 입력하면 즉시 <strong>공문서 한글 금액</strong>과 <strong>천원 단위</strong>로 변환해 드립니다.
+    Claude Code와 함께 교사가 직접 만든 실용 도구입니다.
+  </p>
+  <div class="hero-buttons">
+    <a href="https://github.com/egames22/teacher-calculator/raw/master/dist/%EA%B5%90%EC%82%AC%EC%9A%A9%EA%B3%84%EC%82%B0%EA%B8%B0.exe" class="btn btn-primary">
+      ⬇ 프로그램 다운로드
+    </a>
+    <a href="https://github.com/egames22/teacher-calculator" target="_blank" class="btn btn-secondary">
+      GitHub 저장소 보기
+    </a>
+  </div>
+</div>
+
+<!-- 섹션 1: GitHub -->
+<section id="github">
+  <p class="section-label">01 · Repository</p>
+  <h2 class="section-title">GitHub 저장소</h2>
+  <p class="section-desc">
+    소스 코드, 최신 빌드(.exe), 업데이트 내역을 모두 GitHub에서 확인할 수 있습니다.
+  </p>
+  <div class="github-card">
+    <div class="github-card-info">
+      <h3>📁 egames22 / teacher-calculator</h3>
+      <p>교사용 계산기 — 공문서 한글 금액 변환 · NumLock 단축 실행 · 반응형 UI</p>
+      <div class="github-stats">
+        <span class="github-stat">🐍 Python</span>
+        <span class="github-stat">🪟 Windows</span>
+        <span class="github-stat">⚡ Claude Code로 제작</span>
+      </div>
+    </div>
+    <a href="https://github.com/egames22/teacher-calculator" target="_blank" class="btn btn-accent">
+      GitHub 바로가기 →
+    </a>
+  </div>
+</section>
+
+<!-- 섹션 2: 제작동기 -->
+<section id="motivation">
+  <p class="section-label">02 · Motivation</p>
+  <h2 class="section-title">왜 만들었나요?</h2>
+  <p class="section-desc">
+    교사의 실제 업무 현장에서 느낀 불편함에서 출발했습니다.
+  </p>
+  <div class="motivation-grid">
+    <div class="motivation-card">
+      <div class="icon">📝</div>
+      <h4>공문서 작성의 번거로움</h4>
+      <p>예산 공문 작성 시 숫자를 한글로 변환하는 작업이 매번 반복됩니다. 인터넷 검색이나 별도 프로그램 없이 즉시 변환이 필요했습니다.</p>
+    </div>
+    <div class="motivation-card">
+      <div class="icon">💰</div>
+      <h4>천원 단위 표기 혼란</h4>
+      <p>예산서에 자주 사용하는 천원 단위 표기(1,234천원)를 계산기에서 바로 얻을 수 없어 별도로 계산해야 했습니다.</p>
+    </div>
+    <div class="motivation-card">
+      <div class="icon">⌨️</div>
+      <h4>빠른 실행의 필요성</h4>
+      <p>문서 작업 중 계산기가 필요할 때 마다 마우스를 움직여 실행하는 과정이 번거로웠습니다. 키보드만으로 즉시 실행되길 원했습니다.</p>
+    </div>
+    <div class="motivation-card">
+      <div class="icon">🤖</div>
+      <h4>AI 도구 활용 역량 함양</h4>
+      <p>코드를 직접 작성하지 않고 Claude Code와 대화만으로 실제 업무 도구를 만들 수 있다는 것을 직접 경험하고 동료 교사들과 공유하기 위해 제작했습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 섹션 3: 핵심 프롬프트 -->
+<section id="howto">
+  <p class="section-label">03 · How It's Made</p>
+  <h2 class="section-title">핵심 프롬프트</h2>
+  <p class="section-desc">
+    코드 한 줄 작성하지 않았습니다. Claude Code에 요구사항을 말하면 AI가 코드를 작성했습니다.
+    아래는 주요 기능을 만든 실제 프롬프트입니다.
+  </p>
+  <div class="prompt-list">
+    <div class="prompt-item">
+      <p class="prompt-label">기능 요청 1 — 초기 설계</p>
+      <div class="prompt-bubble">
+        계산기 프로그램을 만들고 싶다. 창을 줄이고 늘림에 따라 버튼과 숫자가 자동으로 변화되길 원한다. NumLock 버튼을 2번 연속으로 누르면 자동 실행되게 하고, 계산된 숫자를 공문서 한글 금액으로 자동 변환해 아래에 표시하고 클릭하면 복사되게 해라.
+      </div>
+      <div class="prompt-result">
+        <span class="tag">구현 결과</span>
+        반응형 계산기 UI, NumLock 더블클릭 실행, 한글 금액 자동 표시 및 클립보드 복사
+      </div>
+    </div>
+    <div class="prompt-item">
+      <p class="prompt-label">기능 요청 2 — 오류 수정</p>
+      <div class="prompt-bubble">
+        천원 단위 변환할 때 1,234천원이 되어야 하는데 1.234로 변환되고 있다. 수정하라. 그리고 NumLock을 또 2번 누르면 계산기가 또 실행되게 하고, X를 눌렀을 때 완전 종료되게 하라.
+      </div>
+      <div class="prompt-result">
+        <span class="tag">구현 결과</span>
+        천원 단위 소수점 버그 수정, 다중 인스턴스 지원, X 버튼 동작 수정
+      </div>
+    </div>
+    <div class="prompt-item">
+      <p class="prompt-label">기능 요청 3 — 설정 및 만든이</p>
+      <div class="prompt-bubble">
+        설정 버튼을 만들어서 X 동작, 항상 위에 표시, 자동 시작, 투명도 등을 조절하게 하라. 만든이는 알잘딱버튼을 참고해 팝업으로 구현하고, 체크박스는 색깔 없는 박스로 구현하라.
+      </div>
+      <div class="prompt-result">
+        <span class="tag">구현 결과</span>
+        설정 다이얼로그, 커스텀 다크 체크박스, 만든이 팝업 (논산여상 + 갓쌤에듀 로고)
+      </div>
+    </div>
+    <div class="prompt-item">
+      <p class="prompt-label">기능 요청 4 — 소수점 표시 개선</p>
+      <div class="prompt-bubble">
+        나눗셈 결과의 소수점 10자리가 전부 표시되어 정수 부분이 안 보인다. 창 너비에 따라 소수점 자릿수를 조절하고, 잘린 자리는 말줄임표(...)로 표시하라. 최소 소수점 2자리는 표시하라.
+      </div>
+      <div class="prompt-result">
+        <span class="tag">구현 결과</span>
+        창 너비 연동 동적 소수점 표시 (260px→2자리, 660px→10자리), 말줄임 처리
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 섹션 4: 활용 방법 -->
+<section id="usage">
+  <p class="section-label">04 · Use Cases</p>
+  <h2 class="section-title">활용 방법 및 사례</h2>
+  <p class="section-desc">
+    교사의 실제 업무 흐름에 맞춰 설계된 기능들입니다.
+  </p>
+  <div class="use-cases">
+    <div class="use-case">
+      <div class="use-case-num">1</div>
+      <div>
+        <h4>예산 공문서 작성</h4>
+        <p>예산액을 계산기에 입력하고 <strong>[한글 변환]</strong> 버튼을 누르면 즉시 공문서 표준 한글 금액이 클립보드에 복사됩니다. 문서에 바로 붙여넣기 할 수 있습니다.</p>
+        <div class="example">예) 1,234,567 → 금 일백이십삼만사천오백육십칠원 정</div>
+      </div>
+    </div>
+    <div class="use-case">
+      <div class="use-case-num">2</div>
+      <div>
+        <h4>예산서 천원 단위 표기</h4>
+        <p>학교 예산서나 품의서 작성 시 <strong>[천원]</strong> 버튼으로 천원 단위를 즉시 변환합니다.</p>
+        <div class="example">예) 1,234,567 → 1,234천원</div>
+      </div>
+    </div>
+    <div class="use-case">
+      <div class="use-case-num">3</div>
+      <div>
+        <h4>문서 작업 중 빠른 계산기 호출</h4>
+        <p>한글, MS Word 등 문서 작업 중 키보드에서 손을 떼지 않고 <strong>NumLock 키를 1초 이내에 2번</strong> 누르면 계산기 창이 바로 열립니다. 계산 후 X를 누르면 트레이로 숨겨지고, 다시 NumLock 2번으로 새 창을 열 수 있습니다.</p>
+      </div>
+    </div>
+    <div class="use-case">
+      <div class="use-case-num">4</div>
+      <div>
+        <h4>여러 계산기를 동시에 사용</h4>
+        <p>항목별로 계산기를 여러 개 띄워서 각 창에서 별도로 계산할 수 있습니다. NumLock 더블클릭 시마다 새 계산기 창이 하나씩 추가됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 섹션 5: 프로그램 소개 -->
+<section id="features">
+  <p class="section-label">05 · Features</p>
+  <h2 class="section-title">프로그램 소개</h2>
+  <p class="section-desc">
+    교사 업무에 최적화된 계산기의 주요 기능을 소개합니다.
+  </p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="icon">📖</div>
+      <h4>공문서 한글 금액 변환</h4>
+      <p>= 또는 [한글 변환] 버튼으로 공문서 표준 "금 일백이십삼만원 정" 형식 자동 변환. 클릭 시 클립보드 복사.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">💵</div>
+      <h4>천원 단위 변환</h4>
+      <p>[천원] 버튼으로 "1,234천원" 형식 즉시 변환. 클릭 시 클립보드 복사.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">⌨️</div>
+      <h4>NumLock 단축 실행</h4>
+      <p>어떤 프로그램을 쓰는 중에도 NumLock 2번으로 새 계산기 창 실행. 여러 창 동시 사용 가능.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📐</div>
+      <h4>반응형 UI</h4>
+      <p>창 크기에 따라 버튼, 숫자, 폰트가 자동 조절됩니다. 나눗셈 소수점도 창 너비에 맞게 동적 표시.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔔</div>
+      <h4>시스템 트레이 상주</h4>
+      <p>X 버튼 클릭 시 트레이로 숨겨져 백그라운드 대기. 우클릭으로 열기/종료 가능.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">⚙️</div>
+      <h4>다양한 설정</h4>
+      <p>항상 위에 표시, 창 투명도 조절, Windows 시작 시 자동 실행, X 버튼 동작 선택.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🖥️</div>
+      <h4>단일 실행 파일</h4>
+      <p>설치 불필요. .exe 파일 하나를 복사해서 바로 실행. Windows 10/11 지원.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🤖</div>
+      <h4>AI로 만든 도구</h4>
+      <p>Claude Code와 대화만으로 제작. 코드 한 줄 없이 교사가 직접 기획하고 완성한 실용 도구.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 섹션 6: QnA -->
+<section id="qna">
+  <p class="section-label">06 · QnA</p>
+  <h2 class="section-title">자주 묻는 질문</h2>
+  <p class="section-desc">사용 중 궁금한 점을 확인하세요.</p>
+  <div class="qna-list">
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        설치가 필요한가요?
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        설치 없이 <strong>교사용계산기.exe</strong> 파일 하나만 실행하면 됩니다. 바탕화면이나 원하는 폴더에 복사해서 사용하세요. Windows 10 / 11 에서 동작합니다.
+      </div>
+    </div>
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        NumLock 단축키가 작동하지 않아요.
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        NumLock 키를 <strong>1초 이내에 2번</strong> 연속으로 눌러야 합니다. 계산기가 이미 여러 개 실행 중일 경우 1.5초 이내에는 중복 실행이 방지되므로, 잠깐 기다렸다가 다시 눌러보세요.
+      </div>
+    </div>
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        X를 눌러도 완전 종료가 안 돼요.
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        기본 설정이 <strong>트레이 숨김</strong>으로 되어 있습니다. 우측 하단 트레이 아이콘을 우클릭하여 <strong>"종료"</strong>를 선택하거나, 설정(⚙) → "X 버튼: 백그라운드 대기" 체크를 해제하면 X 클릭 시 완전 종료됩니다.
+      </div>
+    </div>
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        한글 변환 숫자가 공문서 형식과 다른 것 같아요.
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        본 프로그램은 <strong>공문서 표준(행정안전부 기준)</strong>에 따라 모든 자릿수에 "일"을 포함합니다. 예) 123 → "일백이십삼" (백이십삼 ✗). 소수점 이하는 반올림 후 정수로 변환합니다.
+      </div>
+    </div>
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        Windows 시작 시 자동 실행 설정은 어떻게 하나요?
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        설정(⚙) 버튼 → <strong>"Windows 시작 시 자동 실행"</strong> 체크 후 저장을 누르면 됩니다. 단, 프로그램 파일을 나중에 다른 폴더로 이동하면 자동 실행 경로가 바뀌므로 다시 설정해 주세요.
+      </div>
+    </div>
+    <div class="qna-item">
+      <button class="qna-question" onclick="toggleQna(this)">
+        macOS나 Linux에서도 사용할 수 있나요?
+        <span class="qna-arrow">⌄</span>
+      </button>
+      <div class="qna-answer">
+        현재 버전은 <strong>Windows 전용</strong>입니다. NumLock 감지와 자동 시작 기능이 Windows API에 의존합니다. 소스코드(GitHub)를 받아 Python 환경에서 직접 실행하면 macOS에서도 일부 기능은 동작할 수 있습니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 다운로드 배너 -->
+<div class="download-banner">
+  <h2>지금 바로 사용해 보세요</h2>
+  <p>설치 없이 .exe 파일 하나로 즉시 실행됩니다</p>
+  <a href="https://github.com/egames22/teacher-calculator/raw/master/dist/%EA%B5%90%EC%82%AC%EC%9A%A9%EA%B3%84%EC%82%B0%EA%B8%B0.exe" class="btn btn-accent">
+    ⬇ 교사용계산기.exe 다운로드
+  </a>
+</div>
+
+<!-- 푸터 -->
+<footer>
+  <p><strong>교사용 계산기</strong> · 장동욱 · 논산여자상업고등학교</p>
+  <p style="margin-top:6px">Made with <strong>Claude Code</strong> (Anthropic) · 2026</p>
+</footer>
+
+<script>
+  function toggleQna(btn) {
+    const answer = btn.nextElementSibling;
+    const isOpen = answer.classList.contains('open');
+    document.querySelectorAll('.qna-answer.open').forEach(a => a.classList.remove('open'));
+    document.querySelectorAll('.qna-question.open').forEach(b => b.classList.remove('open'));
+    if (!isOpen) {
+      answer.classList.add('open');
+      btn.classList.add('open');
+    }
+  }
+</script>
+
+</body>
+</html>
