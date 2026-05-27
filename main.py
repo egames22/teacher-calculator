@@ -402,6 +402,7 @@ class Calculator(tk.Tk):
         self._buttons: dict[str, tk.Button] = {}
         self._tray_icon = None
         self._icon_photo = None
+        self._max_dec = 4
 
         self._build_ui()
         self._apply_window_icon()
@@ -569,6 +570,10 @@ class Calculator(tk.Tk):
         expr_fs = max(9,  int(disp_fs * 0.38))
         btn_fs  = max(10, min(26, int(w * 0.065)))
         kor_fs  = max(9,  min(16, int(w * 0.038)))
+
+        # 창 너비 기준 최대 소수점 자릿수: 260px→2, 660px→10
+        self._max_dec = max(2, min(10, int(2 + (w - 260) / 40)))
+        self._refresh()
 
         self._disp_lbl.configure(font=("맑은 고딕", disp_fs, "bold"))
         self._expr_lbl.configure(font=("맑은 고딕", expr_fs))
@@ -756,7 +761,13 @@ class Calculator(tk.Tk):
                 core = f"{int(s2[:-1]):,}."
             elif "." in s2:
                 i, d = s2.split(".", 1)
-                core = f"{int(i):,}.{d}"
+                i_fmt = f"{int(i):,}"
+                d = d.ljust(2, "0")  # 최소 2자리 보장
+                max_dec = getattr(self, "_max_dec", 10)
+                if len(d) > max_dec:
+                    core = f"{i_fmt}.{d[:max_dec]}..."
+                else:
+                    core = f"{i_fmt}.{d}"
             else:
                 core = f"{int(s2):,}"
             return ("-" + core) if neg else core
