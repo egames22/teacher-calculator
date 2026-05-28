@@ -66,12 +66,15 @@ def _remove_state_files():
 
 def _is_pid_alive(pid: int) -> bool:
     try:
-        h = ctypes.windll.kernel32.OpenProcess(0x0400, False, pid)
+        # PROCESS_QUERY_LIMITED_INFORMATION (0x1000) + GetExitCodeProcess
+        # WaitForSingleObject는 SYNCHRONIZE 권한 필요 → 대신 GetExitCodeProcess 사용
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
         if not h:
             return False
-        alive = ctypes.windll.kernel32.WaitForSingleObject(h, 0) == 258
+        code = ctypes.c_ulong(0)
+        ctypes.windll.kernel32.GetExitCodeProcess(h, ctypes.byref(code))
         ctypes.windll.kernel32.CloseHandle(h)
-        return alive
+        return code.value == 259  # STILL_ACTIVE
     except Exception:
         return False
 
