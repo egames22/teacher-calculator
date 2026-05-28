@@ -941,9 +941,26 @@ def _launch_new_instance():
 # ─── 진입점 ──────────────────────────────────────────────────────────────────
 
 def main():
-    app = Calculator()
-    threading.Thread(target=_watch_numlock, daemon=True).start()
-    app.mainloop()
+    try:
+        app = Calculator()
+        threading.Thread(target=_watch_numlock, daemon=True).start()
+        app.mainloop()
+    except Exception:
+        import traceback
+        log_path = os.path.join(BASE_DIR, "error_log.txt")
+        try:
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write(traceback.format_exc())
+        except Exception:
+            pass
+        try:
+            import tkinter.messagebox as mb
+            import tkinter as _tk
+            _r = _tk.Tk(); _r.withdraw()
+            mb.showerror("실행 오류", f"오류가 발생했습니다.\n\n로그 파일을 확인하세요:\n{log_path}")
+            _r.destroy()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
