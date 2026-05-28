@@ -17,6 +17,7 @@ import json
 import subprocess
 import tempfile
 import winreg
+import ctypes
 
 # ─── 경로 유틸 ───────────────────────────────────────────────────────────────
 
@@ -33,6 +34,72 @@ SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 NUMLOCK_TMP   = os.path.join(tempfile.gettempdir(), "calc_numlock_last.tmp")
 APP_NAME      = "교사용계산기"
 APP_DATE      = "2026.5.27."
+MY_PID        = os.getpid()
+TMPDIR        = tempfile.gettempdir()
+
+
+def _state_file(pid: int = MY_PID) -> str:
+    return os.path.join(TMPDIR, f"calc_state_{pid}.tmp")
+
+
+def _restore_file(pid: int = MY_PID) -> str:
+    return os.path.join(TMPDIR, f"calc_restore_{pid}.tmp")
+
+
+def _write_state(state: str):
+    try:
+        with open(_state_file(), "w") as f:
+            f.write(state)
+    except Exception:
+        pass
+
+
+def _remove_state_files():
+    for path in (_state_file(), _restore_file()):
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+
+
+def _is_pid_alive(pid: int) -> bool:
+    try:
+        h = ctypes.windll.kernel32.OpenProcess(0x0400, False, pid)
+        if not h:
+            return False
+        alive = ctypes.windll.kernel32.WaitForSingleObject(h, 0) == 258
+        ctypes.windll.kernel32.CloseHandle(h)
+        return alive
+    except Exception:
+        return False
+
+
+def _get_tray_and_visible_pids() -> tuple:
+    tray_pids, visible_pids = [], []
+    try:
+        for fname in os.listdir(TMPDIR):
+            if not (fname.startswith("calc_state_") and fname.endswith(".tmp")):
+                continue
+            try:
+                pid = int(fname[len("calc_state_"):-4])
+            except ValueError:
+                continue
+            fpath = os.path.join(TMPDIR, fname)
+            if not _is_pid_alive(pid):
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+                continue
+            try:
+                with open(fpath) as f:
+                    state = f.read().strip()
+                (tray_pids if state == "tray" else visible_pids).append(pid)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return tray_pids, visible_pids
 
 
 def _asset(filename: str) -> str:
@@ -410,6 +477,8 @@ class Calculator(tk.Tk):
         self.apply_settings(self._settings)
         self.after(80, self._resize_fonts)
         self.bind("<Configure>", lambda _: self.after(60, self._resize_fonts))
+        _write_state("visible")
+        self.after(500, self._check_restore_req)
 
     # ── UI ───────────────────────────────────────────────────────────────────
 
@@ -516,7 +585,23 @@ class Calculator(tk.Tk):
 
     # ── 트레이 ───────────────────────────────────────────────────────────────
 
+    def _check_restore_req(self):
+        req_file = _restore_file()
+        if os.path.exists(req_file):
+            try:
+                os.remove(req_file)
+            except Exception:
+                pass
+            if self._tray_icon is not None:
+                self._restore_from_tray(self._tray_icon)
+            else:
+                self.deiconify()
+                self.lift()
+                self.focus_force()
+        self.after(500, self._check_restore_req)
+
     def _hide_to_tray(self):
+        _write_state("tray")
         self.withdraw()
         if self._tray_icon is not None:
             return
@@ -534,14 +619,20 @@ class Calculator(tk.Tk):
             pass
 
     def _restore_from_tray(self, icon):
+        _write_state("visible")
         icon.stop()
         self._tray_icon = None
         self.after(0, self.deiconify)
 
     def _quit_from_tray(self, icon):
+        _remove_state_files()
         icon.stop()
         self._tray_icon = None
         self.after(0, self.destroy)
+
+    def destroy(self):
+        _remove_state_files()
+        super().destroy()
 
     # ── 설정 ─────────────────────────────────────────────────────────────────
 
@@ -794,25 +885,27 @@ def _watch_numlock():
     keyboard.wait()
 
 
-def _launch_new_instance():
-    now = time.time()
-    try:
-        if os.path.exists(NUMLOCK_TMP):
-            with open(NUMLOCK_TMP) as f:
-                if now - float(f.read().strip()) < 1.5:
-                    return
-    except Exception:
-        pass
-    try:
-        with open(NUMLOCK_TMP, "w") as f:
-            f.write(str(now))
-    except Exception:
-        pass
-
+def _spawn_new():
     if getattr(sys, "frozen", False):
         subprocess.Popen([EXE_PATH])
     else:
         subprocess.Popen([sys.executable, os.path.abspath(__file__)])
+
+
+def _launch_new_instance():
+    tray_pids, visible_pids = _get_tray_and_visible_pids()
+    if visible_pids:
+        # 보이는 계산기가 있으면 새 창 실행
+        _spawn_new()
+    elif tray_pids:
+        # 트레이에만 있으면 첫 번째 것을 복원 요청
+        try:
+            with open(_restore_file(tray_pids[0]), "w") as f:
+                f.write("restore")
+        except Exception:
+            pass
+    else:
+        _spawn_new()
 
 
 # ─── 진입점 ──────────────────────────────────────────────────────────────────
