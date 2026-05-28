@@ -36,6 +36,8 @@ APP_NAME      = "교사용계산기"
 APP_DATE      = "2026.5.27."
 MY_PID        = os.getpid()
 TMPDIR        = tempfile.gettempdir()
+SPAWN_LOCK    = os.path.join(TMPDIR, "calc_spawn.tmp")
+SPAWN_COOLDOWN = 1.5  # 초: 여러 인스턴스 동시 스폰 방지
 
 
 def _state_file(pid: int = MY_PID) -> str:
@@ -601,6 +603,11 @@ class Calculator(tk.Tk):
         self.after(500, self._check_restore_req)
 
     def _hide_to_tray(self):
+        # 트레이에 이미 1개 있으면 이 인스턴스는 종료 (설정 무관)
+        tray_pids, _ = _get_tray_and_visible_pids()
+        if tray_pids:
+            self.destroy()
+            return
         _write_state("tray")
         self.withdraw()
         if self._tray_icon is not None:
@@ -893,9 +900,24 @@ def _spawn_new():
 
 
 def _launch_new_instance():
+    # 여러 인스턴스가 동시에 NumLock을 감지해 중복 스폰하는 것을 방지
+    now = time.time()
+    try:
+        if os.path.exists(SPAWN_LOCK):
+            with open(SPAWN_LOCK) as f:
+                t = float(f.read().strip())
+            if now - t < SPAWN_COOLDOWN:
+                return
+    except Exception:
+        pass
+
     tray_pids, visible_pids = _get_tray_and_visible_pids()
     if visible_pids:
-        # 보이는 계산기가 있으면 새 창 실행
+        try:
+            with open(SPAWN_LOCK, "w") as f:
+                f.write(str(now))
+        except Exception:
+            pass
         _spawn_new()
     elif tray_pids:
         # 트레이에만 있으면 첫 번째 것을 복원 요청
@@ -905,6 +927,11 @@ def _launch_new_instance():
         except Exception:
             pass
     else:
+        try:
+            with open(SPAWN_LOCK, "w") as f:
+                f.write(str(now))
+        except Exception:
+            pass
         _spawn_new()
 
 
